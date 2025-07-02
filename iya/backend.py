@@ -1,6 +1,22 @@
 import questionary
 import subprocess
 import os
+import platform
+import sys
+
+def run_command(command):
+    if platform.system() == "Windows":
+        if command[0] in {"npx", "npm", "django-admin", "uvicorn", "flask", "nest"}:
+            command[0] += ".cmd"
+        subprocess.run(command, shell=True)
+    else:
+        subprocess.run(command)
+
+def get_venv_path(tool):
+    if platform.system() == "Windows":
+        return os.path.join("venv", "Scripts", f"{tool}.exe")
+    else:
+        return os.path.join("venv", "bin", tool)
 
 def handle_backend():
     backend_choice = questionary.select(
@@ -10,9 +26,11 @@ def handle_backend():
 
     print("\nCreating backend...")
 
+    # Create venv
+    run_command([sys.executable, "-m", "venv", "venv"])
+
     if backend_choice == "FastAPI":
-        subprocess.run(["python3", "-m", "venv", "venv"])
-        subprocess.run(["venv/bin/pip", "install", "fastapi", "uvicorn"])
+        run_command([get_venv_path("pip"), "install", "fastapi", "uvicorn"])
         with open("main.py", "w") as f:
             f.write("""from fastapi import FastAPI
 
@@ -22,21 +40,23 @@ app = FastAPI()
 def read_root():
     return {"Hello": "World"}
 """)
+
     elif backend_choice == "Django":
-        subprocess.run(["python3", "-m", "venv", "venv"])
-        subprocess.run(["venv/bin/pip", "install", "django"])
-        subprocess.run(["venv/bin/django-admin", "startproject", "mysite"])
+        run_command([get_venv_path("pip"), "install", "django"])
+        run_command([get_venv_path("django-admin"), "startproject", "mysite"])
+
     elif backend_choice == "Express.js":
-        subprocess.run(["npm", "init", "-y"])
-        subprocess.run(["npm", "install", "express"])
+        run_command(["npm", "init", "-y"])
+        run_command(["npm", "install", "express"])
         with open("index.js", "w") as f:
             f.write("""const express = require('express');
 const app = express();
 const port = 3000;
 
 app.get('/', (req, res) => res.send('Hello World!'));
-app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+app.listen(port, () => console.log(`App listening on port ${port}!`));
 """)
+
     elif backend_choice == "Nest.js":
-        subprocess.run(["npm", "i", "-g", "@nestjs/cli"])
-        subprocess.run(["nest", "new", "."])
+        run_command(["npm", "i", "-g", "@nestjs/cli"])
+        run_command(["nest", "new", "."])
